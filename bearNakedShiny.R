@@ -20,7 +20,7 @@ if(require("Biostrings") == FALSE){
 }
 
 library(shiny)
-library(seqinr)
+#library(seqinr)
 library(Biobase)
 library(Biostrings)
 
@@ -46,8 +46,8 @@ ui <- shinyUI(fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
             h4("To get started, choose a fasta file on the left."),
-            uiOutput("fileTab"),
-            uiOutput("sum"),
+            ##uiOutput("fileTab"),
+            #uiOutput("sum"),
 			uiOutput("seqText"),
             plotOutput("plotMM")
         )
@@ -57,30 +57,41 @@ ui <- shinyUI(fluidPage(
 # Define server logic required to draw a histogram
 server <- shinyServer(function(input, output) {
 	
+			
 	##read in FASTA file
     fasta <- reactive({
         inFile <- input$file
-        if(is.null(inFile)){
-            return ()
+        if(is.null(inFile) == F){
+            
+			if(input$seqType == 1){ ##DNA fasta file
+				
+				readDNAStringSet(inFile$name)
+				
+			} else if(input$seqType == 2){ ##RNA fasta file
+				
+				readRNAStringSet(inFile$name)
+			} else if(input$seqType == 3){ ##Protein fasta file
+				
+				readAAStringSet(inFile$name)
+			}
         }
-        read.fasta(file = inFile$datapath)
+        #readFASTA(file = inFile$datapath)
     })
 
 	##check to see if anything is in the file -- do not think this is necessary?
-    output$fileTab <- renderTable({
-        if(is.null(fasta())){
-           return()
-        }
-        input$file
-    })
+#    output$fileTab <- renderTable({
+#        if(is.null(fasta())){
+#           return()
+#        }
+#        input$file
+#    })
 	
 	##generates a summary of the file
-    output$sum <- renderTable({
-        if(is.null(fasta())){
-            return ()
-        }
-        summary(fasta())
-    })
+#    output$sum <- renderTable({
+#        if(is.null(fasta()) == F){
+#			summary(fasta())
+#        }
+#    })
 	
 	##print DNA, RNA, or protein sequences
 	output$seqText <- renderText({
@@ -107,7 +118,11 @@ server <- shinyServer(function(input, output) {
 				
 			} else if(input$seqType == 3){ ##protein
 				
-				
+				f <- fasta()[[1]][1:length(fasta()[[1]])]
+				x <- paste(f, collapse = "")
+				dna <- DNAString(x)
+				aa <- suppressWarnings(translate(dna))
+				paste(aa)
 			}
 		}
 	})
@@ -135,7 +150,12 @@ server <- shinyServer(function(input, output) {
 				
 			} else if(input$seqType == 3){ ##protein
 				
-				
+				f <- fasta()[[1]][1:length(fasta()[[1]])]
+				x <- paste(f, collapse = "")
+				dna <- DNAString(x)
+				peptide <- suppressWarnings(translate(dna))
+				aa <- strsplit(as.character(peptide), split = "")[[1]]
+				barplot(table(aa), xlab = "Amino acids", ylab = "Number of amino acids",  main = "Peptide composition of each amino acid" )
 			}
 		}
     })
